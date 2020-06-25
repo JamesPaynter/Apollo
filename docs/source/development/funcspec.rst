@@ -1,4 +1,5 @@
 .. James Paynter, 2020.
+.. _funcspec:
 
 Apollo
 ======
