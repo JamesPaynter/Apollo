@@ -2,6 +2,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def makemap(map_object, **kwargs):
+    map = map_object.return_map(**kwargs)
+    return map
+
+class EmptyMap(object):
+    """docstring for EmptyMap."""
+
+    def __init__(self, ):
+        super(EmptyMap, self).__init__()
+
 
 class MagnificationMap(object):
     """docstring for MagnificationMap.

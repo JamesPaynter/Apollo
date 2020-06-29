@@ -13,11 +13,12 @@ Quasar microlensing software suite.
 
 
 
-
+Modules
+-------
 
 
 Quasar module
--------------
+^^^^^^^^^^^^^
 
 
 -	  QSO = Quasar(\*\*kwargs)
@@ -31,10 +32,16 @@ Quasar module
 -	  QSO.return_disk()
 
 
+Questions
+"""""""""
+
+1.  How does matplotlib do image scaling?
+      a. Do I need to do manual image rescaling myself?
+      b.
 
 
 Magmap module
--------------
+^^^^^^^^^^^^^
 
 -	  Magmap = MagnificationMap(\*\*kwargs)
 -	  Magmap.plot(show or savefig)
@@ -42,8 +49,16 @@ Magmap module
 
 
 Convolve module
----------------
+^^^^^^^^^^^^^^^
 
 
 Telescope module
-----------------
+^^^^^^^^^^^^^^^^
+
+
+
+
+
+
+Animations
+----------
