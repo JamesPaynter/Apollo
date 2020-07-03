@@ -31,7 +31,7 @@ class MagnificationMap(object):
         self.resolution = resolution
         self.map = self.makemap()
 
-        self.plot_map()
+        # self.plot_map()
 
 
     def toy_map(self, map):
@@ -43,7 +43,7 @@ class MagnificationMap(object):
                                     - 4)
                                     # )
                 else:
-                    out[xx,yy] = 0
+                    out[xx,yy] = 1
         return out
 
 
@@ -55,7 +55,7 @@ class MagnificationMap(object):
         return map
 
     def return_strip(self, start, width, axes):
-        return
+        return self.map
 
     def plot_map(self):
         plt.imshow(self.map)

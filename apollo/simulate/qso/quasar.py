@@ -18,7 +18,7 @@ class Quasar(object):
         self.disk = None
         self.radius = 500 # pixels
         self.disk = self.disk_maker()
-        self.plot_disk()
+        # self.plot_disk()
 
     def solid_disk(self, disk):
         out = np.zeros((2*self.radius+1, 2*self.radius+1))
