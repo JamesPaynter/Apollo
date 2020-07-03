@@ -5,9 +5,74 @@ import sys
 MIN_FLOAT = sys.float_info[3]
 
 
+class FunSources(object):
+    """docstring for FunSources."""
+
+    def __init__(self):
+        super(FunSources, self).__init__()
+
+    def make_circle(self):
+        # Source parameters
+        xpos = 0   # Source position. X coordinate
+        ypos = 0 # Source position. Y coordinate
+        rad  = 0.1 # Radius of source
+        ipos=   xpos / self.s_size # Convert source parameters to pixels
+        jpos= - ypos / self.s_size
+        rpix=   rad  / self.s_size
+        # ipos=int(round(xpos/ys)) # Convert source parameters to pixels
+        # jpos=int(round(-ypos/ys))
+        # rpix=int(round(rad/ys))
+        #
+        circle = gaussian_ellipse( x = jpos, y = ipos,
+                                    sigma_x = rpix, sigma_y = rpix,
+                                    Npix = self.Ns_pix, theta = np.pi / 4)
+        return circle
+
+    def make_five_ellipse(self):
+        xpos = 0   # Source position. X coordinate
+        ypos = 0 # Source position. Y coordinate
+        rad  = 0.1 # Radius of source
+        ipos=   xpos / self.s_size # Convert source parameters to pixels
+        jpos= - ypos / self.s_size
+        rpix=   rad  / self.s_size
 
 
-def gaussian_ellipse(x, y, sigma_x, Npix, sigma_y = None, theta = 0):
+        x_array = [-0.6, -0.3, 0.0, 0.3, 0.6]
+        source = np.zeros((self.Ns_pix, self.Ns_pix))
+        for i, x_pos in enumerate(x_array):
+            source += gaussian_ellipse( x = ipos + x_pos / self.s_size,
+                                        y = jpos,
+                                        sigma_x = rpix, sigma_y = rpix * 4,
+                                        Npix = self.Ns_pix, theta = np.pi / 4)
+        return source
+
+    def make_uniform_field(self, n_source, radius_mean, radius_sigma):
+        xpos = 0 # Source position. X coordinate
+        ypos = 0 # Source position. Y coordinate
+        rad  = 1 # Radius of source
+        # Convert source parameters to pixels
+        ipos=   xpos / self.s_size
+        jpos= - ypos / self.s_size
+        rpix=   rad  / self.s_size
+
+        x_arr = 4 * np.random.rand(n_source) - 2
+        y_arr = 4 * np.random.rand(n_source) - 2
+        sigma_x = np.random.normal(radius_mean, radius_sigma, n_source)
+        sigma_y = np.random.normal(radius_mean, radius_sigma, n_source)
+        theta_array = np.pi * (2 * np.random.rand(n_source) - 1)
+        source = np.zeros((self.Ns_pix, self.Ns_pix))
+        for i, x_pos in enumerate(x_arr):
+            source += gaussian_ellipse( x = x_arr[i] / self.s_size,
+                                        y = y_arr[i] / self.s_size,
+                                        sigma_x = rpix * sigma_x[i],
+                                        sigma_y = rpix * sigma_y[i],
+                                        Npix    = self.Ns_pix,
+                                        theta   = theta_array[i],
+                                        normed  = False)
+        return source
+
+
+def gaussian_ellipse(x, y, sigma_x, Npix, sigma_y = None, theta = 0, normed = True):
     # https://en.wikipedia.org/wiki/Gaussian_function#Two-dimensional_Gaussian_function
     """
     Assumes the ellipse is to be calculated on a *square* pixel grid.
@@ -46,13 +111,12 @@ def gaussian_ellipse(x, y, sigma_x, Npix, sigma_y = None, theta = 0):
                      + c * np.square(y_mesh - y - Npix / 2)
                      + 2 * b * (x_mesh - x - Npix / 2) * (y_mesh - y - Npix / 2)
                     ))
-    ellipse = ellipse / np.sum(ellipse) # normalise to 1
+    # normalise to 1
+    if normed:
+        ellipse = ellipse / np.sum(ellipse)
     return ellipse
 
-# from numba import njit
-#
-# @njit
-def point(x_s, y_s, x_l, y_l, m_l):
+def point_lenses(x_s, y_s, x_l, y_l, m_l):
     r"""
     Calculates the deflection angle as a function of position for a point mass
     gravitational lens.
@@ -71,8 +135,7 @@ def point(x_s, y_s, x_l, y_l, m_l):
         \Vec{\alpha}(\Vec{x}) = M_\text{lens}
         \frac{\Vec{x} - \Vec{x}_d}{|\Vec{x} - \Vec{x}_d|^2}
 
-    The function returns the image position vector :math:`\Vec{y}` expressed
-    through the return parameters `x_i`, `y_i`.
+    The function returns the image position vector :math:`\Vec{y}`.
 
     Parameters
     ----------
@@ -89,27 +152,41 @@ def point(x_s, y_s, x_l, y_l, m_l):
     x_i, y_i
 
     """
-    try:
-        x_s = np.array(x_s)
-    except TypeError as error:
-        print(error)
-        print("The source x-pixel position(s) should be a float or an array of")
-        print("floats.")
-    try:
-        y_s = np.array(y_s)
-    except TypeError as error:
-        print(error)
-        print("The source y-pixel position(s) should be a float or an array of")
-        print("floats.")
 
-    x = x_s - x_l # Distance along x axis of ray to lens position
-    y = y_s - y_l # Distance along y axis of ray to lens position
+    x = x_s - x_l
+    y = y_s - y_l
     r_squared = np.square(x) + np.square(y) + MIN_FLOAT
-    x_i = x_s - m_l * x / r_squared
-    y_i = y_s - m_l * y / r_squared
-    return x_i, y_i
+    alpha_x, alpha_y = m_l * x / r_squared, m_l * y / r_squared
+    return x_s - alpha_x , y_s - alpha_y
 
-class RayShooter(object):
+    # def _make_array(parameter):
+    #     if not isinstance(parameter, (list, np.ndarray)):
+    #         try:
+    #             parameter = np.array([parameter])
+    #         except TypeError as error:
+    #             print(error)
+    #     return parameter
+    # x_s = _make_array(x_s)
+    # y_s = _make_array(y_s)
+    # x_l = _make_array(x_l)
+    # y_l = _make_array(y_l)
+    # m_l = _make_array(m_l)
+    #
+    # def alpha_x_y(x_s, y_s, x_l, y_l, m_l):
+    #     x = x_s - x_l
+    #     y = y_s - y_l
+    #     r_squared = np.square(x) + np.square(y) + MIN_FLOAT
+    #     return m_l * x / r_squared, m_l * y / r_squared
+    #
+    # alpha_x, alpha_y = np.zeros(np.shape(x_s)), np.zeros(np.shape(x_s))
+    # for i in range(len(m_l)):
+    #     alpha_x_i, alpha_y_i = alpha_x_y(x_s, y_s, x_l[i], y_l[i], m_l[i])
+    #     alpha_x += alpha_x_i
+    #     alpha_y += alpha_y_i
+    #
+    # return x_s - alpha_x , y_s - alpha_y
+
+class RayShooter(FunSources):
     """docstring for RayShooter.
 
     Parameters
@@ -143,32 +220,12 @@ class RayShooter(object):
         self.i_size = 2 * self.i_len / (self.Ni_pix - 1) # pixel size on the image map
         self.s_size = 2 * self.s_len / (self.Ns_pix - 1) # pixel size on the source map
 
-        source = self.make_source()
-        a, b = self.shoot_rays(source = source)
+        source = self.make_five_ellipse()
+        source = self.make_uniform_field(15, .1, .05)
+        a, b = self.shoot_rays(source = source, lens = point_lenses)
         self.plot_rays(a, b)
 
-    def make_source(self):
-        # Source parameters
-        xpos = 0   # Source position. X coordinate
-        ypos = 0.2 # Source position. Y coordinate
-        rad  = 0.05 # Radius of source
-        ipos=   xpos / self.s_size # Convert source parameters to pixels
-        jpos= - ypos / self.s_size
-        rpix=   rad  / self.s_size
-        # ipos=int(round(xpos/ys)) # Convert source parameters to pixels
-        # jpos=int(round(-ypos/ys))
-        # rpix=int(round(rad/ys))
 
-        ellipse = gaussian_ellipse( x = jpos, y = ipos,
-                                    sigma_x = rpix, sigma_y = rpix,
-                                    Npix = self.Ns_pix, theta = np.pi / 4)
-        ellipse += gaussian_ellipse( x = jpos, y = ipos + 0.2 / self.s_size,
-                                    sigma_x = rpix, sigma_y = rpix * 4,
-                                    Npix = self.Ns_pix, theta = np.pi / 4)
-        ellipse += gaussian_ellipse( x = jpos, y = ipos - 0.2 / self.s_size,
-                                    sigma_x = rpix, sigma_y = rpix * 4,
-                                    Npix = self.Ns_pix, theta = np.pi / 4)
-        return ellipse
 
     def get_magnification(self, source, image, s_pix_area, i_pix_area):
         """
@@ -189,11 +246,14 @@ class RayShooter(object):
         """
         print(np.sum(source), np.sum(image), np.sum(image)/np.sum(source))
 
-    def shoot_rays(self, source, lens = point):
+    def shoot_rays(self, source, lens):
         # Lens parameters
         xd = 0
         yd = 0
         ml = 1
+        xd = 2 * np.random.rand(2) - 1
+        yd = 2 * np.random.rand(2) - 1
+        ml = np.ones(2) / 3
 
         # This is the image plane, creates an empty 2D array
         image = np.zeros((self.Ni_pix,self.Ni_pix))
@@ -203,7 +263,8 @@ class RayShooter(object):
         # turns into 2D array
         X1, X2 = np.meshgrid(x1, x2)
         # return a 2D array in the source plane
-        y1, y2 = lens(X1,X2,xd,yd,ml)
+        # y1, y2 = lens(X1,X2,xd,yd,ml)
+        y1, y2 = lens(X1,X2,0,0,1)
         # coordinates of deflected rays
         # i1, i2 are a set of indices
         i2 = np.round((y1+self.s_len)/self.s_size, 0).astype(int)
@@ -225,4 +286,4 @@ class RayShooter(object):
 
 
 if __name__ == '__main__':
-    rays = RayShooter(2001, 2)
+    rays = RayShooter(5001, 2)
